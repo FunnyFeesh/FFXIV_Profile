@@ -1,0 +1,539 @@
+/* Variation 3A "Parse-Accented Raider Bento": Discord-native surfaces, color only for parse tiers and prog */
+
+/* Tokens on both roots: parts of the modal tab (header, links) sit outside any card */
+.vc-ffxiv-card,
+.vc-ffxiv-modal {
+    --vc-ffxiv-hairline: rgb(255 255 255 / 7%);
+    --vc-ffxiv-tile-bg: rgb(0 0 0 / 28%);
+    --vc-ffxiv-muted: var(--text-muted, #949ba4);
+    --vc-ffxiv-prog: #f59e0b;
+    --vc-ffxiv-gold-border: rgb(229 204 128 / 35%);
+
+    color: var(--text-default, var(--text-normal, #dbdee1));
+    font-family: var(--font-primary);
+}
+
+.vc-ffxiv-card {
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-radius: 12px;
+    border: 1px solid rgb(255 255 255 / 6%);
+    background: var(--profile-body-background-color, var(--background-base-lower, #1e1f22));
+}
+
+/* ---------- Popout ---------- */
+
+.vc-ffxiv-popout {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 8px 0;
+    padding: 12px;
+}
+
+/* Darkened Tomestone banner behind the popout content */
+.vc-ffxiv-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    pointer-events: none;
+}
+
+.vc-ffxiv-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgb(18 19 24 / 78%), rgb(18 19 24 / 94%));
+}
+
+.vc-ffxiv-popout > :not(.vc-ffxiv-backdrop) {
+    position: relative;
+    z-index: 1;
+}
+
+.vc-ffxiv-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.vc-ffxiv-avatar {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--vc-ffxiv-tile-bg);
+}
+
+.vc-ffxiv-identity-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.vc-ffxiv-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vc-ffxiv-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--vc-ffxiv-hairline);
+    background: var(--vc-ffxiv-tile-bg);
+    color: var(--vc-ffxiv-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.vc-ffxiv-status {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.vc-ffxiv-icon-button {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: var(--vc-ffxiv-tile-bg);
+    color: var(--interactive-normal, #b5bac1);
+    cursor: pointer;
+}
+
+.vc-ffxiv-icon-button:hover:not(:disabled) {
+    color: var(--interactive-hover, #dbdee1);
+    background: rgb(255 255 255 / 8%);
+}
+
+.vc-ffxiv-icon-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.vc-ffxiv-spin {
+    animation: vc-ffxiv-spin 1s linear infinite;
+}
+
+@keyframes vc-ffxiv-spin {
+    to { transform: rotate(360deg); }
+}
+
+.vc-ffxiv-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--vc-ffxiv-muted);
+}
+
+/* 4-tile Savage row */
+.vc-ffxiv-savage-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.vc-ffxiv-tile {
+    position: relative;
+    aspect-ratio: 1;
+    max-height: 68px;
+    border-radius: 8px;
+    border: 1.5px solid var(--vc-ffxiv-hairline);
+    background-color: var(--vc-ffxiv-tile-bg);
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+}
+
+.vc-ffxiv-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgb(0 0 0 / 45%), rgb(0 0 0 / 75%));
+}
+
+.vc-ffxiv-tile-label {
+    position: absolute;
+    left: 6px;
+    bottom: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+}
+
+.vc-ffxiv-tile-corner {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgb(0 0 0 / 55%);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.vc-ffxiv-tile-door {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 0 3px;
+    border-radius: 4px;
+    background: rgb(0 0 0 / 55%);
+    color: var(--vc-ffxiv-muted);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 14px;
+}
+
+.vc-ffxiv-tile[data-kind="none"],
+.vc-ffxiv-tile[data-kind="private"] {
+    opacity: 0.55;
+}
+
+/* 7-pill Ultimate strip */
+.vc-ffxiv-ult-strip {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+/* Tooltip wrappers are the flex items */
+.vc-ffxiv-ult-strip > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.vc-ffxiv-ult {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 0;
+    border-radius: 8px;
+    border: 1.5px solid var(--vc-ffxiv-hairline);
+    background: var(--vc-ffxiv-tile-bg);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 13px;
+}
+
+.vc-ffxiv-ult-value {
+    font-size: 11px;
+}
+
+.vc-ffxiv-ult[data-kind="parse"],
+.vc-ffxiv-ult[data-kind="cleared"] {
+    box-shadow: 0 0 6px -1px var(--vc-ffxiv-accent, transparent);
+}
+
+.vc-ffxiv-ult[data-kind="none"],
+.vc-ffxiv-ult[data-kind="private"] {
+    color: var(--vc-ffxiv-muted);
+    opacity: 0.6;
+}
+
+.vc-ffxiv-empty {
+    color: var(--vc-ffxiv-muted);
+    font-size: 12px;
+}
+
+/* ---------- Badges ---------- */
+
+.vc-ffxiv-badge-chip {
+    display: grid;
+    place-items: center;
+    height: 20px;
+    padding: 0 4px;
+    border-radius: 4px;
+    border: 1px solid var(--vc-ffxiv-gold-border, rgb(229 204 128 / 35%));
+    background: rgb(229 204 128 / 12%);
+    color: #e5cc80;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+/* ---------- Full profile modal tab ---------- */
+
+/* Same as MutualGroupDMs: tighter tab spacing so an extra tab fits */
+.vc-ffxiv-modal-tab-bar {
+    gap: 0;
+}
+
+.vc-ffxiv-modal-v2-tab-bar {
+    --space-xl: 16px;
+}
+
+.vc-ffxiv-modal {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: 38% minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+    min-height: 100%;
+}
+
+.vc-ffxiv-modal > * {
+    min-width: 0;
+}
+
+.vc-ffxiv-portrait {
+    min-height: 420px;
+    height: 100%;
+    background-size: cover;
+    background-position: top center;
+    background-color: var(--vc-ffxiv-tile-bg);
+}
+
+.vc-ffxiv-portrait-pills {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-ffxiv-glass {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 999px;
+    background: rgb(17 18 20 / 75%);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: default;
+}
+
+button.vc-ffxiv-glass {
+    cursor: pointer;
+}
+
+button.vc-ffxiv-glass:hover {
+    background: rgb(17 18 20 / 88%);
+}
+
+.vc-ffxiv-job-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.vc-ffxiv-drawer {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 48px;
+    max-height: 60%;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 12px;
+    background: rgb(17 18 20 / 88%);
+    backdrop-filter: blur(8px);
+    font-size: 12px;
+}
+
+.vc-ffxiv-drawer h4 {
+    margin: 6px 0 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--vc-ffxiv-muted);
+}
+
+.vc-ffxiv-jobs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 4px;
+}
+
+.vc-ffxiv-job {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vc-ffxiv-job[data-unleveled="true"] {
+    opacity: 0.4;
+}
+
+/* One column in Discord's narrow profile tab; Savage and Ultimates side by side when there's room */
+.vc-ffxiv-right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: min-content;
+    gap: 12px;
+    align-content: start;
+}
+
+@container (min-width: 860px) {
+    .vc-ffxiv-right {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+.vc-ffxiv-tile-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+}
+
+.vc-ffxiv-tile-card[data-gold="true"] {
+    border-color: var(--vc-ffxiv-gold-border);
+}
+
+.vc-ffxiv-span {
+    grid-column: 1 / -1;
+}
+
+.vc-ffxiv-select {
+    max-width: 60%;
+    padding: 2px 4px;
+    border: 1px solid var(--vc-ffxiv-hairline);
+    border-radius: 6px;
+    background: var(--vc-ffxiv-tile-bg);
+    color: var(--text-default, var(--text-normal));
+    font-size: 11px;
+    text-transform: none;
+}
+
+.vc-ffxiv-boss-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.vc-ffxiv-boss {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 64px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1.5px solid var(--vc-ffxiv-hairline);
+    background-color: var(--vc-ffxiv-tile-bg);
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+}
+
+.vc-ffxiv-boss::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(0 0 0 / 80%), rgb(0 0 0 / 50%));
+}
+
+.vc-ffxiv-boss > * {
+    position: relative;
+}
+
+.vc-ffxiv-boss-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vc-ffxiv-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vc-ffxiv-boss-value {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 28px;
+}
+
+.vc-ffxiv-boss-meta {
+    font-size: 11px;
+    color: var(--vc-ffxiv-muted);
+}
+
+.vc-ffxiv-ult-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.vc-ffxiv-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.vc-ffxiv-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--vc-ffxiv-tile-bg);
+    overflow: hidden;
+}
+
+.vc-ffxiv-bar > div {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--vc-ffxiv-prog);
+}
+
+.vc-ffxiv-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-ffxiv-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--vc-ffxiv-hairline);
+    border-radius: 999px;
+    background: var(--vc-ffxiv-tile-bg);
+    color: var(--text-default, var(--text-normal));
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.vc-ffxiv-link img {
+    width: 14px;
+    height: 14px;
+}
+
+.vc-ffxiv-link:hover {
+    background: rgb(255 255 255 / 8%);
+}

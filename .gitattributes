@@ -1,0 +1,2 @@
+# Keep LF like the rest of Vencord, regardless of core.autocrlf
+* text=auto eol=lf
