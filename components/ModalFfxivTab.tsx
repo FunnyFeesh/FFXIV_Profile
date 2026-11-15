@@ -38,48 +38,52 @@ function Portrait({ character }: { character: CharacterInfo; }) {
             className={cl("card", "portrait")}
             style={{ backgroundImage: url ? `url("${url}")` : undefined, backgroundPosition: showCustom ? custom.position ?? "top center" : "top center" }}
         >
-            {drawerOpen && (
-                <div className={cl("drawer")}>
-                    {character.title && <div>«{character.title}»</div>}
-                    {character.freeCompany && <div>Free Company: {character.freeCompany}</div>}
-                    {roles.map(role => (
-                        <section key={role}>
-                            <h4>{ROLE_LABELS[role]}</h4>
-                            <div className={cl("jobs")}>
-                                {character.jobs.filter(j => j.role === role).map(j => (
-                                    <span key={j.slug} className={cl("job")} data-unleveled={j.level === 0} title={j.name}>
-                                        {j.id != null && <img className={cl("job-icon")} src={jobIconUrl(j.id)!} alt="" />}
-                                        {j.level || "–"}
-                                    </span>
-                                ))}
-                            </div>
-                        </section>
-                    ))}
-                </div>
-            )}
-
-            <div className={cl("portrait-pills")}>
-                <button className={cl("glass")} onClick={() => setDrawerOpen(o => !o)} aria-expanded={drawerOpen}>
-                    {icon && <img className={cl("job-icon")} src={icon} alt="" />}
-                    {[character.itemLevel && `iLvl ${character.itemLevel}`, character.activeJob].filter(Boolean).join(" • ") || "Jobs"}
-                </button>
-                {custom && character.lodestonePortraitUrl && (
-                    <button className={cl("glass")} onClick={() => setUseLodestone(v => !v)}>
-                        {useLodestone ? "Show Tomestone Art" : "Switch to Lodestone Portrait"}
-                    </button>
+            <div className={cl("portrait-overlay")}>
+                {drawerOpen && (
+                    <div className={cl("drawer")}>
+                        {character.title && <div>«{character.title}»</div>}
+                        {character.freeCompany && <div>Free Company: {character.freeCompany}</div>}
+                        {roles.map(role => (
+                            <section key={role}>
+                                <h4>{ROLE_LABELS[role]}</h4>
+                                <div className={cl("jobs")}>
+                                    {character.jobs.filter(j => j.role === role).map(j => (
+                                        <span key={j.slug} className={cl("job")} data-unleveled={j.level === 0} title={j.name}>
+                                            {j.id != null && <img className={cl("job-icon")} src={jobIconUrl(j.id)!} alt="" />}
+                                            {j.level || "–"}
+                                        </span>
+                                    ))}
+                                </div>
+                            </section>
+                        ))}
+                    </div>
                 )}
+
+                <div className={cl("portrait-pills")}>
+                    <button className={cl("glass")} onClick={() => setDrawerOpen(o => !o)} aria-expanded={drawerOpen} title="Show job levels">
+                        {icon && <img className={cl("job-icon")} src={icon} alt="" />}
+                        <span className={cl("glass-text")}>{character.activeJob ?? "Jobs"}</span>
+                    </button>
+                    {character.itemLevel && <span className={cl("glass")}>iLvl {character.itemLevel}</span>}
+                    {custom && character.lodestonePortraitUrl && (
+                        <button className={cl("glass", "glass-subtle")} onClick={() => setUseLodestone(v => !v)}>
+                            {useLodestone ? "Tomestone art" : "Lodestone portrait"}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
 }
 
-function BossCard({ e }: { e: EncounterProgOrParse; }) {
+// One full-width row per boss: name and stats on the left, the big result on the right
+function BossRow({ e }: { e: EncounterProgOrParse; }) {
     const tile = tileFor(e);
     const value = e.bestPercent != null
         ? formatPercent(e.bestPercent)
         : e.cleared ? "✓" : e.progPoint ? compactProg(e.progPoint) : e.progPrivate ? "Private" : "–";
     const meta = [
-        e.killCount ? `${e.killCount}x` : null,
+        e.killCount ? `${e.killCount} kill${e.killCount === 1 ? "" : "s"}` : null,
         e.fastestKillMs ? formatKillTime(e.fastestKillMs) : null,
         e.bestJob,
         !e.cleared && e.progMechanic ? e.progMechanic : null,
@@ -88,12 +92,18 @@ function BossCard({ e }: { e: EncounterProgOrParse; }) {
     return (
         <div
             className={cl("boss")}
+            data-kind={tile.kind}
             title={tile.tooltip}
             style={{ borderColor: tile.color ?? undefined, backgroundImage: e.bannerUrl ? `url("${e.bannerUrl}")` : undefined }}
         >
-            <span className={cl("boss-name")}>{e.shortName} · {e.fullName}</span>
+            <div className={cl("boss-text")}>
+                <span className={cl("boss-title")}>
+                    <span className={cl("boss-short")}>{e.shortName}</span>
+                    <span className={cl("boss-name")}>{e.fullName}</span>
+                </span>
+                {meta && <span className={cl("boss-meta")}>{meta}</span>}
+            </div>
             <span className={cl("boss-value")} style={{ color: tile.color ?? undefined }}>{value}</span>
-            {meta && <span className={cl("boss-meta")}>{meta}</span>}
         </div>
     );
 }
@@ -120,8 +130,8 @@ function SavageCard({ passport }: { passport: RaiderPassport; }) {
             {loading
                 ? <span className={cl("empty")}>Loading FF Logs…</span>
                 : tier !== CURRENT_SAVAGE_TIER && statusLabel(status) && <span className={cl("pill", "status")}>FF Logs · {statusLabel(status)}</span>}
-            <div className={cl("boss-grid")}>
-                {passport.savageTiers[tier].map(e => <BossCard key={e.canonicalName} e={e} />)}
+            <div className={cl("boss-list")}>
+                {passport.savageTiers[tier].map(e => <BossRow key={e.canonicalName} e={e} />)}
             </div>
         </div>
     );
