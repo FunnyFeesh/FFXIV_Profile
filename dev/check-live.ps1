@@ -2,8 +2,9 @@
 # Run from the Vencord folder:  .\src\userplugins\ffxivProfile.desktop\dev\check-live.ps1
 # Credentials are read with hidden prompts, kept only in this process's environment,
 # and removed when the script ends. Leave a prompt empty to skip that service.
+# -Partitions runs the FFLogs partition comparison instead (FFLogs credentials only).
 
-param([string]$LodestoneId)
+param([string]$LodestoneId, [switch]$Partitions)
 
 $ErrorActionPreference = "Stop"
 
@@ -18,10 +19,11 @@ $names = "FFXIV_FFLOGS_ID", "FFXIV_FFLOGS_SECRET", "FFXIV_TOMESTONE_TOKEN", "FFX
 try {
     $env:FFXIV_FFLOGS_ID = Read-Secret "FFLogs Client ID (Enter to skip FFLogs)"
     if ($env:FFXIV_FFLOGS_ID) { $env:FFXIV_FFLOGS_SECRET = Read-Secret "FFLogs Client Secret" }
-    $env:FFXIV_TOMESTONE_TOKEN = Read-Secret "Tomestone API token (Enter to skip Tomestone)"
+    if (-not $Partitions) { $env:FFXIV_TOMESTONE_TOKEN = Read-Secret "Tomestone API token (Enter to skip Tomestone)" }
     if ($LodestoneId) { $env:FFXIV_LODESTONE_ID = $LodestoneId }
 
-    node --import tsx src/userplugins/ffxivProfile.desktop/dev/checkLive.ts
+    $script = if ($Partitions) { "checkPartitions.ts" } else { "checkLive.ts" }
+    node --import tsx "src/userplugins/ffxivProfile.desktop/dev/$script"
 }
 finally {
     foreach ($n in $names) { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }

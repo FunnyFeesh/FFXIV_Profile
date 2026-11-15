@@ -7,12 +7,12 @@
 import { TooltipContainer } from "@components/TooltipContainer";
 import { classNameFactory } from "@utils/css";
 import { useForceUpdater } from "@utils/react";
-import { RelationshipStore, showToast, useEffect, UserProfileStore, useStateFromStores } from "@webpack/common";
+import { RelationshipStore, showToast, Tooltip, useEffect, UserProfileStore, useStateFromStores } from "@webpack/common";
 import type { CSSProperties } from "react";
 
 import { characterLinks, LINK_ICONS, relativeTime, statusLabel, TileModel } from "../services/display";
 import { subscribe } from "../services/events";
-import { resolveUser } from "../services/IdentityService";
+import { NoteStore, resolveUser } from "../services/IdentityService";
 import { ensurePassport, getPassportStateSync } from "../services/PassportAggregator";
 import type { SourceStatus } from "../types";
 
@@ -28,7 +28,7 @@ export function useFfxivUser(userId: string) {
     useEffect(() => subscribe(forceUpdate), []);
 
     const lodestoneId = useStateFromStores(
-        [RelationshipStore, UserProfileStore],
+        [NoteStore as any, RelationshipStore, UserProfileStore],
         () => resolveUser(userId)?.lodestoneId ?? null,
     );
     const identity = lodestoneId ? resolveUser(userId) : null;
@@ -77,12 +77,15 @@ export function RefreshButton({ lodestoneId, fetchedAt, loading }: { lodestoneId
             showToast({ text: "Refreshed less than a minute ago. Try again shortly.", variant: "default" });
     }
 
+    // Hover props go straight onto the button; wrapped in TooltipContainer's div the tooltip never showed
     return (
-        <TooltipContainer text={tooltip}>
-            <button className={cl("icon-button")} onClick={onClick} disabled={loading} aria-label="Refresh FFXIV data">
-                <RefreshIcon spinning={loading} />
-            </button>
-        </TooltipContainer>
+        <Tooltip text={tooltip}>
+            {tooltipProps => (
+                <button {...tooltipProps} className={cl("icon-button")} onClick={onClick} disabled={loading} aria-label="Refresh FFXIV data">
+                    <RefreshIcon spinning={loading} />
+                </button>
+            )}
+        </Tooltip>
     );
 }
 

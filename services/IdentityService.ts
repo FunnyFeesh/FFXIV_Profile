@@ -5,6 +5,7 @@
  */
 
 import * as DataStore from "@api/DataStore";
+import { findStoreLazy } from "@webpack";
 import { RelationshipStore, UserProfileStore } from "@webpack/common";
 
 import { DATA_KEYS } from "../constants";
@@ -12,6 +13,13 @@ import type { CharacterLink, IdentityProvider, IdentitySource, LinkMap, Resolved
 import { emitChange } from "./events";
 import { ParsedIdentity, parseIdentityText } from "./identityText";
 import { Native, safeFetch } from "./ipc";
+
+// Notes on any user live here as { loading, note }; RelationshipStore.getNote only covers relationships (checked live)
+export const NoteStore = findStoreLazy("NoteStore") as { getNote(userId: string): { note?: string; } | undefined; };
+
+function getNoteText(userId: string) {
+    return NoteStore.getNote(userId)?.note || RelationshipStore.getNote(userId);
+}
 
 let links: LinkMap = {};
 
@@ -71,7 +79,7 @@ const providers: IdentityProvider[] = [
     },
     {
         id: "discord_note",
-        resolve: userId => fromParsed(parseIdentityText(RelationshipStore.getNote(userId)), "discord_note"),
+        resolve: userId => fromParsed(parseIdentityText(getNoteText(userId)), "discord_note"),
     },
     {
         // Only available once Discord has fetched that user's profile (e.g. popout opened); never bulk-fetched

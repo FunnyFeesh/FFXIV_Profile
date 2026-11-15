@@ -376,7 +376,7 @@ button.vc-ffxiv-glass:hover {
 
 .vc-ffxiv-jobs {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
     gap: 4px;
 }
 
