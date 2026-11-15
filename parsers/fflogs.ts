@@ -18,28 +18,25 @@ export function isFflogsScope(s: unknown): s is FflogsScope {
     return s === "core" || (typeof s === "string" && Object.hasOwn(SAVAGE_TIERS, s));
 }
 
-// FFLogs' "all partitions" value
+// Best % and kills are all-time: every zone asks for all partitions. Omitting `partition` gives the same
+// result today (checked live), but being explicit keeps it all-time if FFLogs changes its default.
 const ALL_PARTITIONS = -1;
 
 interface ZoneDefs {
     zoneId: number;
     encounters: EncounterDef[];
-    // Older savage tiers use all partitions so past-patch kills still count;
-    // the pinned tier and ultimates use FFLogs' default (current) partition
-    allPartitions: boolean;
 }
 
 function zoneDefs(scope: FflogsScope): ZoneDefs[] {
     const zones = new Map<number, ZoneDefs>();
-    const add = (zoneId: number, e: EncounterDef, allPartitions: boolean) => {
-        if (!zones.has(zoneId)) zones.set(zoneId, { zoneId, encounters: [], allPartitions });
+    const add = (zoneId: number, e: EncounterDef) => {
+        if (!zones.has(zoneId)) zones.set(zoneId, { zoneId, encounters: [] });
         zones.get(zoneId)!.encounters.push(e);
     };
-    const wantedTier = scope === "core" ? CURRENT_SAVAGE_TIER : scope;
-    const tier = SAVAGE_TIERS[wantedTier];
-    for (const f of tier.floors) add(tier.fflogsZoneId, f, wantedTier !== CURRENT_SAVAGE_TIER);
+    const tier = SAVAGE_TIERS[scope === "core" ? CURRENT_SAVAGE_TIER : scope];
+    for (const f of tier.floors) add(tier.fflogsZoneId, f);
     if (scope === "core")
-        for (const u of Object.values(ULTIMATES)) add(u.fflogsZoneId, u, false);
+        for (const u of Object.values(ULTIMATES)) add(u.fflogsZoneId, u);
     return [...zones.values()];
 }
 
@@ -49,10 +46,7 @@ export function buildFflogsQuery(metric: FflogsMetric, scope: FflogsScope) {
     if (!isFflogsScope(scope)) throw new Error("Invalid scope");
 
     const zones = zoneDefs(scope)
-        .map(z => {
-            const partition = z.allPartitions ? `, partition: ${ALL_PARTITIONS}` : "";
-            return `z${z.zoneId}: zoneRankings(zoneID: ${z.zoneId}, metric: ${metric}${partition})`;
-        })
+        .map(z => `z${z.zoneId}: zoneRankings(zoneID: ${z.zoneId}, metric: ${metric}, partition: ${ALL_PARTITIONS})`)
         .join("\n            ");
 
     return `query ($id: Int!) {

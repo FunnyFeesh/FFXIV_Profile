@@ -70,7 +70,7 @@ FF Logs links of the form `fflogs.com/character/id/<n>` aren't supported, becaus
   - Opening a profile costs about 21 points (current tier + Ultimates).
   - An older tier in the dropdown is fetched only when you pick it (about 5 points).
 - **Badges:** Discord asks for badges only once per profile view, so a character's badges appear from the second time you open their profile.
-- **Best %:** the current Savage tier and the Ultimates use FF Logs' default partition; older tiers use all partitions.
+- **Best % and kills are all-time:** every tier and Ultimate counts parses from all patch partitions, not just the current patch.
 - **Clears:** an encounter counts as cleared if either FF Logs has a kill or Tomestone records a clear (achievements count even without an uploaded log).
 
 ## Privacy

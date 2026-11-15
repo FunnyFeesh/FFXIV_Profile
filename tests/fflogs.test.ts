@@ -11,12 +11,11 @@ import { buildFflogsQuery, FflogsMetric, FflogsScope, parseFflogsResponse } from
 
 const zoneCount = (q: string) => (q.match(/zoneRankings\(/g) ?? []).length;
 
-test("core query: pinned tier + ultimates on the default partition, metric inlined", () => {
+test("core query: pinned tier + ultimates, all partitions, metric inlined", () => {
     const q = buildFflogsQuery("rdps", "core");
     for (const zone of [73, 65, 76, 59])
-        assert.equal(q.split(`z${zone}: zoneRankings(zoneID: ${zone}, metric: rdps)`).length, 2, `zone ${zone}`);
+        assert.equal(q.split(`z${zone}: zoneRankings(zoneID: ${zone}, metric: rdps, partition: -1)`).length, 2, `zone ${zone}`);
     assert.equal(zoneCount(q), 4);
-    assert.doesNotMatch(q, /partition:/);
     assert.match(q, /character\(lodestoneID: \$id\)/);
     assert.match(q, /hidden/);
     assert.match(q, /rateLimitData/);
