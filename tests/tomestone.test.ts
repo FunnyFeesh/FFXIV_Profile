@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { SAVAGE_TIERS, ULTIMATES } from "../constants";
-import { parseTomestoneProfile } from "../parsers/tomestone";
+import { artPosition, parseTomestoneProfile } from "../parsers/tomestone";
 
 const fixturePath = process.env.FFXIV_FIXTURE ?? join(process.cwd(), "..", "tomestone-profile.json");
 // The fixture file starts with a UTF-8 BOM
@@ -37,7 +37,7 @@ test("fixture: identity, art and jobs", () => {
     assert.match(character.customArt.portrait?.url ?? "", /^https:\/\/assets\.tomestone\.gg\//);
     assert.equal(typeof character.activeJobId, "number");
     assert.ok(character.jobs.every(j => typeof j.id === "number"));
-    assert.ok(character.customArt.portrait?.position);
+    assert.match(character.customArt.portrait?.position ?? "", /^(left|center|right) (top|center|bottom)$/);
     assert.ok(character.jobs.some(j => j.role === "tanks"));
     assert.ok(character.jobs.every(j => j.name && j.slug && typeof j.level === "number"));
 });
@@ -126,4 +126,12 @@ test("missing custom images and nulls don't throw", () => {
 test("garbage input is an error", () => {
     assert.equal(parseTomestoneProfile(null).status, "error");
     assert.equal(parseTomestoneProfile({ foo: 1 }).status, "error");
+});
+
+test("artPosition turns Tomestone's crop hint into CSS", () => {
+    assert.equal(artPosition({ horizontalAnchor: 2, verticalAnchor: 1 }), "right center");
+    assert.equal(artPosition({ horizontalAnchor: 1, verticalAnchor: 0, backgroundPosition: "bg-top" }), "center top");
+    assert.equal(artPosition({ backgroundPosition: "bg-left-top" }), "left top");
+    assert.equal(artPosition({ backgroundPosition: "url(evil)" }), undefined);
+    assert.equal(artPosition({}), undefined);
 });

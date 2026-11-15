@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PROG_COLOR } from "../constants";
-import { compactProg, jobIconUrl, m12sTile, parseColor, relativeTime, statusLabel, tileFor } from "../services/display";
+import { compactProg, jobIconUrl, jobIdForSpec, m12sTile, parseColor, relativeTime, statusLabel, tileFor } from "../services/display";
 import type { EncounterProgOrParse } from "../types";
 
 const enc = (over: Partial<EncounterProgOrParse> = {}): EncounterProgOrParse => ({
@@ -97,4 +97,12 @@ test("relative time", () => {
     assert.equal(relativeTime(now - 5 * 60_000, now), "5m ago");
     assert.equal(relativeTime(now - 2 * 3_600_000, now), "2h ago");
     assert.equal(relativeTime(now - 50 * 3_600_000, now), "2d ago");
+});
+
+test("jobIdForSpec matches FF Logs specs to the character's jobs", () => {
+    const jobs = [{ id: 37, name: "Gunbreaker" }, { id: 25, name: "Black Mage" }, { name: "Carpenter" }];
+    assert.equal(jobIdForSpec("BlackMage", jobs), 25);
+    assert.equal(jobIdForSpec("Gunbreaker", jobs), 37);
+    assert.equal(jobIdForSpec("Pictomancer", jobs), undefined);
+    assert.equal(jobIdForSpec(null, jobs), undefined);
 });

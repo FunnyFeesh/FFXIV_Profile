@@ -9,6 +9,7 @@ import type { User } from "@vencord/discord-types";
 import { CURRENT_SAVAGE_TIER, SAVAGE_TIERS } from "../constants";
 import { m12sTile, tileFor } from "../services/display";
 import type { RaiderPassport } from "../types";
+import { openPassportModal } from "./PassportModal";
 import { cl, RefreshButton, SavageTile, SourcePills, UltimatePill, useFfxivUser } from "./shared";
 
 // Pinned tier: floors 1-3 as-is, then the door-collapsed 4th floor (two FFLogs encounters)
@@ -31,12 +32,12 @@ export function PopoutProgSummary({ user }: { user: User; }) {
     }
 
     const c = passport.character;
-    const banner = c?.customArt.banner?.url;
+    const banner = c?.customArt.banner;
     const avatar = c?.customArt.avatar?.url ?? c?.avatarUrl;
 
     return (
-        <div className={cl("card", "popout")}>
-            {banner && <div className={cl("backdrop")} style={{ backgroundImage: `url("${banner}")`, backgroundPosition: c?.customArt.banner?.position }} />}
+        <div className={cl("card", "popout")} data-banner={!!banner}>
+            {banner && <div className={cl("popout-banner")} style={{ backgroundImage: `url("${banner.url}")`, backgroundPosition: banner.position ?? "center" }} />}
 
             <div className={cl("identity")}>
                 {avatar && <img className={cl("avatar")} src={avatar} alt="" />}
@@ -63,6 +64,8 @@ export function PopoutProgSummary({ user }: { user: User; }) {
             <div className={cl("ult-strip")}>
                 {Object.values(passport.ultimates).map(u => <UltimatePill key={u.canonicalName} tile={tileFor(u)} />)}
             </div>
+
+            <button className={cl("open-passport")} onClick={() => openPassportModal(user)}>Open FFXIV Passport</button>
         </div>
     );
 }

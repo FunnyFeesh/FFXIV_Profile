@@ -35,7 +35,12 @@ interface TsJob {
 
 interface TsImage {
     image?: string | null;
+    // Tailwind class on Tomestone's site, e.g. "bg-right"
     backgroundPosition?: string | null;
+    // 0 = top/left, 1 = center, 2 = bottom/right
+    verticalAnchor?: number | null;
+    horizontalAnchor?: number | null;
+    explicit?: boolean | null;
 }
 
 interface TsProfile {
@@ -63,9 +68,21 @@ interface TsProfile {
 
 const HIDDEN_MARKER = "tomestone-hidden";
 
+const H_ANCHORS = ["left", "center", "right"];
+const V_ANCHORS = ["top", "center", "bottom"];
+
+// Tomestone's crop hint as a CSS background-position: the numeric anchors, else the "bg-*" class name
+export function artPosition(img: TsImage): string | undefined {
+    const h = H_ANCHORS[img.horizontalAnchor ?? -1];
+    const v = V_ANCHORS[img.verticalAnchor ?? -1];
+    if (h || v) return `${h ?? "center"} ${v ?? "center"}`;
+    return img.backgroundPosition?.match(/^bg-([a-z-]+)$/)?.[1].replace("-", " ");
+}
+
+// Art flagged explicit on Tomestone is left out, since Discord profiles are seen by everyone
 function toArt(img: TsImage | null | undefined): ArtImage | undefined {
-    if (!img?.image) return undefined;
-    return { url: img.image, position: img.backgroundPosition ?? undefined };
+    if (!img?.image || img.explicit) return undefined;
+    return { url: img.image, position: artPosition(img) };
 }
 
 function toEncounter(e: TsEncounter): TomestoneEncounterData {

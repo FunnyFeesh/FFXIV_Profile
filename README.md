@@ -2,8 +2,12 @@
 
 A [Vencord](https://github.com/Vendicated/Vencord) userplugin that links Discord users to their Final Fantasy XIV characters and shows their raid progress on Discord profiles:
 
-- **Profile popout:** character name, world and art, a tile per floor of the current Savage tier with your Best % in FFLogs colours (or your current prog point), and a strip of all seven Ultimates.
-- **Full profile → "FFXIV" tab:** a tall character portrait, boss cards with Best %, kill count, fastest kill and job, older Savage tiers in a dropdown, Ultimate clears and progress, the active Tomestone progression target, and links to Tomestone, FF Logs and the Lodestone.
+- **Profile popout:** character name and world over their Tomestone banner, a tile per floor of the current Savage tier with your Best % in FFLogs colours (or your current prog point), and a strip of all seven Ultimates.
+- **FFXIV Passport window** (the **Open FFXIV Passport** button at the bottom of the popout card):
+  - the character's Tomestone banner across the top (if they've set one), with a **View banner** button for the full image;
+  - a side rail with the character portrait, job and iLvl (click the job for all job levels), and links to Tomestone, FF Logs and the Lodestone;
+  - a Savage table with Best %, kills, fastest kill and job per boss, with older tiers in a dropdown;
+  - Ultimate clears and progress, and the active Tomestone progression target.
 - **Profile badges:** main job icon, an FF Logs link, and a gold chip for each cleared Ultimate.
 
 Data comes from [FF Logs](https://www.fflogs.com/) (parses, kills), [Tomestone.gg](https://tomestone.gg/) (prog points, custom art, character details) and [The Lodestone](https://na.finalfantasyxiv.com/lodestone/) (fallback for character details and art). Job icons come from [XIVAPI](https://v2.xivapi.com/).

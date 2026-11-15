@@ -105,3 +105,12 @@ export function relativeTime(ms: number, now = Date.now()) {
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
 }
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+
+// FF Logs spec ("BlackMage") -> ClassJob ID, via the character's Tomestone job list
+export function jobIdForSpec(spec: string | null, jobs: ReadonlyArray<{ id?: number; name: string; }>) {
+    if (!spec) return undefined;
+    const key = squash(spec);
+    return jobs.find(j => squash(j.name) === key)?.id;
+}
