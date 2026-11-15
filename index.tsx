@@ -46,7 +46,7 @@ const userContextPatch: NavContextMenuPatchCallback = (children, { user }: { use
 export default definePlugin({
     name: "FfxivProfile",
     description: "Shows linked FFXIV characters' raid progress, parses and art on Discord profiles",
-    authors: [{ name: "you", id: 0n }],
+    authors: [{ name: "FunnyFeesh", id: 0n }],
     settings,
 
     contextMenus: {
