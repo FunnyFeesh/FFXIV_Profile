@@ -63,6 +63,23 @@ In a note or bio, any of these work:
 
 FF Logs links of the form `fflogs.com/character/id/<n>` aren't supported, because that number is FF Logs' own ID, not a Lodestone ID.
 
+### Auto-detection
+
+If none of those finds a character, the plugin guesses one from data Discord has already loaded, and checks the guess on the Lodestone:
+
+4. **Their FFXIV Rich Presence**, from the Dalamud *Discord Rich Presence* plugin (character name, plus the world or «FC» tag).
+5. **Their nickname** in any server you share, or their display name, when it looks like `First Last`, `First Last (World)`, `First Last @ World`, `[TAG] First Last` or `Nick | First Last`. Roles named after a world or data center (e.g. `Aether`) narrow the search.
+
+A guess is used only when the Lodestone has exactly one character with that exact name (on that world, if one was given). It shows as a **Suggested match** on the popout and in the Passport window, with no badges, until you choose:
+
+- **Confirm** saves it like a link you made yourself.
+- **Not them** hides that character for that user for good. Removing a link does the same.
+- **Allow again** in the Link dialog undoes those rejections for that user.
+
+If the suggested character's Lodestone profile text contains that person's Discord user ID, the plugin links it automatically, since they published the link themselves.
+
+Your own link always wins over everything else. Turn each auto-detection source off in the plugin settings. Lookups only run for profiles you open, never for member lists.
+
 ## Using it
 
 - **Refresh:** profiles are cached for 1–6 hours (setting, default 3).
@@ -71,8 +88,8 @@ FF Logs links of the form `fflogs.com/character/id/<n>` aren't supported, becaus
   - Both wait 60 seconds after the last fetch.
   - Saving or clearing a credential makes all cached profiles out of date.
 - **FF Logs points:** your FF Logs client has an hourly point budget (typically 1,000).
-  - Opening a profile costs about 21 points (current tier + Ultimates).
-  - An older tier in the dropdown is fetched only when you pick it (about 5 points).
+  - Opening a profile costs about 26 points (current tier in Savage and Normal, plus Ultimates).
+  - An older tier in the dropdown is fetched only when you pick it (about 10 points).
 - **Badges:** Discord asks for badges only once per profile view, so a character's badges appear from the second time you open their profile.
 - **Best % and kills are all-time:** every tier and Ultimate counts parses from all patch partitions, not just the current patch.
 - **Clears:** an encounter counts as cleared if either FF Logs has a kill or Tomestone records a clear (achievements count even without an uploaded log).
@@ -92,7 +109,7 @@ pnpm build --dev
 node --import tsx --test src/userplugins/ffxivProfile.desktop/tests/*.test.ts
 ```
 
-- **Tests:** `node:test` checks the parsers and pure logic (`parsers/`, `services/passportModel.ts`, `services/display.ts`, `services/identityText.ts`).
+- **Tests:** `node:test` checks the parsers and pure logic (`parsers/`, `services/passportModel.ts`, `services/display.ts`, `services/identityText.ts`, `services/detectText.ts`, `services/worlds.ts`).
 - **Fixture:** the Tomestone tests read a real profile response from `../tomestone-profile.json`, relative to the Vencord folder. Override the path with `FFXIV_FIXTURE`. Don't commit that file: it contains a real character's data.
 - **Live API check:** `dev/check-live.ps1` (PowerShell) calls FF Logs and Tomestone through the plugin's own request code. It asks for credentials with hidden prompts and prints only statuses and field names.
 - **Reloading Discord:**

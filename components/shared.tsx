@@ -7,14 +7,14 @@
 import { TooltipContainer } from "@components/TooltipContainer";
 import { classNameFactory } from "@utils/css";
 import { useForceUpdater } from "@utils/react";
-import { RelationshipStore, showToast, Tooltip, useEffect, UserProfileStore, useStateFromStores } from "@webpack/common";
+import { GuildMemberStore, PresenceStore, RelationshipStore, showToast, Tooltip, useEffect, UserProfileStore, useStateFromStores } from "@webpack/common";
 import type { CSSProperties } from "react";
 
 import { characterLinks, LINK_ICONS, relativeTime, statusLabel, TileModel } from "../services/display";
 import { subscribe } from "../services/events";
-import { NoteStore, resolveUser } from "../services/IdentityService";
+import { confirmSuggestion, dismissSuggestion, NoteStore, resolveUser } from "../services/IdentityService";
 import { ensurePassport, getPassportStateSync } from "../services/PassportAggregator";
-import type { SourceStatus } from "../types";
+import type { ResolvedCharacterIdentity, SourceStatus } from "../types";
 
 export const cl = classNameFactory("vc-ffxiv-");
 
@@ -27,8 +27,9 @@ export function useFfxivUser(userId: string) {
     const forceUpdate = useForceUpdater();
     useEffect(() => subscribe(forceUpdate), []);
 
+    // Presence and members feed auto-detection (Rich Presence, nicknames, roles)
     const lodestoneId = useStateFromStores(
-        [NoteStore as any, RelationshipStore, UserProfileStore],
+        [NoteStore as any, RelationshipStore, UserProfileStore, PresenceStore, GuildMemberStore],
         () => resolveUser(userId)?.lodestoneId ?? null,
     );
     const identity = lodestoneId ? resolveUser(userId) : null;
@@ -39,6 +40,23 @@ export function useFfxivUser(userId: string) {
     }, [lodestoneId]);
 
     return { identity, lodestoneId, ...state };
+}
+
+// Auto-detected match: shown until you confirm it (saved like a manual link) or reject it (never suggested again)
+export function SuggestionBar({ userId, identity }: { userId: string; identity: ResolvedCharacterIdentity | null; }) {
+    if (!identity?.suggested) return null;
+    const who = identity.name ? `${identity.name}${identity.world ? ` @ ${identity.world}` : ""}` : `Lodestone ID ${identity.lodestoneId}`;
+    const tooltip = `${who}, found from ${identity.evidence ?? "their profile"}. Only you see this.`;
+
+    return (
+        <div className={cl("suggest")}>
+            <Tooltip text={tooltip}>
+                {tooltipProps => <span {...tooltipProps} className={cl("suggest-label")}>Suggested</span>}
+            </Tooltip>
+            <button className={cl("suggest-button", "suggest-confirm")} onClick={() => confirmSuggestion(userId, identity)}>Confirm</button>
+            <button className={cl("suggest-button")} onClick={() => dismissSuggestion(userId, identity.lodestoneId)}>Not them</button>
+        </div>
+    );
 }
 
 const SOURCE_NAMES = { fflogs: "FF Logs", tomestone: "Tomestone", lodestone: "Lodestone" };
@@ -112,7 +130,11 @@ export function UltimatePill({ tile }: { tile: TileModel; }) {
             <div
                 className={cl("ult")}
                 data-kind={tile.kind}
-                style={{ borderColor: tile.color ?? undefined, ["--vc-ffxiv-accent" as string]: tile.color ?? "#e5cc80" }}
+                style={{
+                    borderColor: tile.color ?? undefined,
+                    backgroundImage: tile.bannerUrl ? `url("${tile.bannerUrl}")` : undefined,
+                    ["--vc-ffxiv-accent" as string]: tile.color ?? "#e5cc80",
+                }}
             >
                 <span>{tile.label}</span>
                 <span className={cl("ult-value")} style={{ color: tile.color ?? undefined }}>{tile.corner ?? "–"}</span>

@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { findExactCharacter, parseLodestoneProfile, parseLodestoneSearch } from "../parsers/lodestone";
+import { bioMentionsDiscordId, findExactCharacter, findExactMatches, parseLodestoneBio, parseLodestonePageCount, parseLodestoneProfile, parseLodestoneSearch } from "../parsers/lodestone";
 
 // Synthetic markup copying the structure of live Lodestone pages (checked 2026-11-14); names are made up
 const ICON_PLD = "https://lds-img.finalfantasyxiv.com/h/a/pld.png";
@@ -66,4 +66,32 @@ test("search: parses entries and only accepts an exact name + world", () => {
     assert.equal(findExactCharacter(results, " tata taru ", "gilgamesh")?.lodestoneId, "11");
     assert.equal(findExactCharacter(results, "Tata Taru", "Sargatanas")?.lodestoneId, "33");
     assert.equal(findExactCharacter(results, "Tata", "Gilgamesh"), null);
+});
+
+test("search: page count from the pager", () => {
+    assert.equal(parseLodestonePageCount("<li class=\"btn__pager__current\">Page 1 of 4</li>"), 4);
+    assert.equal(parseLodestonePageCount("<div>no pager</div>"), 1);
+});
+
+test("search: every exact match, with or without a world", () => {
+    const results = [
+        { lodestoneId: "1", name: "Tata Taru", world: "Gilgamesh", dataCenter: "Aether" },
+        { lodestoneId: "2", name: "Tata Tarutaru", world: "Gilgamesh", dataCenter: "Aether" },
+        { lodestoneId: "3", name: "Tata Taru", world: "Siren", dataCenter: "Aether" },
+    ];
+    assert.deepEqual(findExactMatches(results, "tata taru").map(r => r.lodestoneId), ["1", "3"]);
+    assert.deepEqual(findExactMatches(results, "Tata Taru", "siren").map(r => r.lodestoneId), ["3"]);
+});
+
+test("bio: self-introduction text and Discord ID check", () => {
+    const html = "<div class=\"character__selfintroduction\">Discord account ID is 123456789012345678<br /><br />XIVAUTH:ABC &amp; more</div>";
+    const bio = parseLodestoneBio(html);
+    assert.equal(bio, "Discord account ID is 123456789012345678\n\nXIVAUTH:ABC & more");
+    assert.ok(bioMentionsDiscordId(bio, "123456789012345678"));
+    // Part of a longer number, or a different ID
+    assert.ok(!bioMentionsDiscordId("ID 9123456789012345678", "123456789012345678"));
+    assert.ok(!bioMentionsDiscordId(bio, "223456789012345678"));
+    // Not a Discord ID at all
+    assert.ok(!bioMentionsDiscordId("123", "123"));
+    assert.equal(parseLodestoneBio("<div>nothing</div>"), "");
 });

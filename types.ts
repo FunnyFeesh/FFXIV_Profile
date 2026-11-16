@@ -17,12 +17,15 @@ export type FetchResult<T> =
     | { status: "ok"; data: T; }
     | { status: Exclude<SourceStatus, "ok" | "skipped">; message?: string; };
 
-export type IdentitySource = "local_override" | "discord_note" | "discord_bio";
+// rich_presence and nickname are auto-detected guesses, shown as suggestions until confirmed
+export type IdentitySource = "local_override" | "discord_note" | "discord_bio" | "rich_presence" | "nickname";
 
 export interface CharacterLink {
     lodestoneId: string;
     name?: string;
     world?: string;
+    // Set when the plugin saved the link itself: the character's Lodestone bio names this Discord user's ID
+    autoLinked?: "lodestone_bio";
 }
 
 // characters[0] is the primary character, the rest are alts
@@ -35,6 +38,19 @@ export type LinkMap = Record<string, LinkRecord>;
 
 export interface ResolvedCharacterIdentity extends CharacterLink {
     source: IdentitySource;
+    // Auto-detected and not confirmed: show a "Suggested" bar with Confirm / Not them, and no badges
+    suggested?: boolean;
+    // What the guess was read from, for the suggestion tooltip ("Rich Presence: First Last @ World")
+    evidence?: string;
+}
+
+// Lodestone search scope: one world, one data center, or every world
+export type LodestoneSearchScope = { world: string; } | { dataCenter: string; } | Record<string, never>;
+
+export interface LodestoneMatches {
+    matches: LodestoneSearchResult[];
+    // false when there were more result pages than were read, so uniqueness can't be proven
+    complete: boolean;
 }
 
 // Synchronous so badges can use it; name + world lookups are cached and resolved in the background
@@ -66,6 +82,8 @@ export interface EncounterProgOrParse {
     progPrivate: boolean;
     // Tomestone duty banner (assets.tomestone.gg), used as the tile background
     bannerUrl: string | null;
+    // Savage floors only: Normal-mode FFLogs kills, so "Normal only" reads differently from "never done it"
+    normal?: { killCount: number; bestPercent: number | null; } | null;
 }
 
 export interface ActiveProgression {
@@ -140,7 +158,10 @@ export interface FflogsEncounterData {
 }
 
 export interface FflogsData {
+    // Savage (difficulty 101) for savage floors; the only difficulty for ultimates
     encounters: Record<string, FflogsEncounterData>;
+    // Normal-mode (difficulty 100) rankings for savage floors; shown as "Normal only", never as Savage
+    normalEncounters: Record<string, FflogsEncounterData>;
     rateLimit: { limitPerHour: number; pointsSpentThisHour: number; pointsResetIn: number; } | null;
 }
 
@@ -152,6 +173,8 @@ export interface LodestoneSearchResult {
 }
 
 export interface RaiderPassport {
+    // PASSPORT_SCHEMA when built; older cached passports are refetched
+    schema?: number;
     lodestoneId: string;
     fetchedAt: number;
     metric: FflogsMetric;

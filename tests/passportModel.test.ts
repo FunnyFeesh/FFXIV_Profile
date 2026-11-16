@@ -17,7 +17,8 @@ import type { CharacterInfo, FetchResult, FflogsData, TomestoneData } from "../t
 const fixturePath = process.env.FFXIV_FIXTURE ?? join(process.cwd(), "..", "tomestone-profile.json");
 const tomestone = parseTomestoneProfile(JSON.parse(readFileSync(fixturePath, "utf8").replace(/^﻿/, ""))) as FetchResult<TomestoneData>;
 
-const ff = (encounters: FflogsData["encounters"]): FetchResult<FflogsData> => ({ status: "ok", data: { encounters, rateLimit: null } });
+const ff = (encounters: FflogsData["encounters"], normalEncounters: FflogsData["normalEncounters"] = {}): FetchResult<FflogsData> =>
+    ({ status: "ok", data: { encounters, normalEncounters, rateLimit: null } });
 const kill = (killCount: number, bestPercent: number | null = 90) => ({ killCount, bestPercent, bestJob: "Pictomancer", fastestKillMs: 400000 });
 
 const LODESTONE_CHAR: CharacterInfo = { name: "L C", world: "W", dataCenter: "D", customArt: {}, jobs: [] };
@@ -136,4 +137,30 @@ test("refresh: normal click only when stale, shift-click forces, both wait for t
     assert.equal(refreshDecision(justFetched, ctx(), true), "cooldown");
     assert.equal(refreshDecision(justFetched, ctx({ metric: "adps" }), false), "cooldown");
     assert.equal(refreshDecision(passportAt(10 * HOUR - REFRESH_COOLDOWN_MS), ctx(), true), "fetch");
+});
+
+test("Normal-mode kills are kept apart from Savage", () => {
+    const p = buildPassport("1", "rdps", 1000, {
+        fflogs: ff({}, { "the-tyrant": kill(2, 54) }),
+        tomestone: { status: "no_token" },
+        lodestone: null,
+    });
+    const m11s = p.savageTiers.heavyweight[2];
+    assert.equal(m11s.cleared, false);
+    assert.equal(m11s.bestPercent, null);
+    assert.equal(m11s.killCount, 0);
+    assert.deepEqual(m11s.normal, { killCount: 2, bestPercent: 54 });
+});
+
+test("passports cached before the Savage/Normal split are stale", () => {
+    const p = buildPassport("1", "rdps", 1000, { fflogs: ff({}), tomestone: { status: "no_token" }, lodestone: null });
+    const ctx = { now: 2000, ttlMs: 3_600_000, metric: "rdps" as const, credentialsChangedAt: 0 };
+    assert.equal(isFresh(p, ctx), true);
+    assert.equal(isFresh({ ...p, schema: undefined }, ctx), false);
+});
+
+test("duty art falls back to the fixed Tomestone image when Tomestone sent none", () => {
+    const p = buildPassport("1", "rdps", 1000, { fflogs: ff({}), tomestone: { status: "no_token" }, lodestone: null });
+    assert.equal(p.ultimates.dmu.bannerUrl, "https://assets.tomestone.gg/i/112000/112658.webp");
+    assert.equal(p.savageTiers.heavyweight[2].bannerUrl, "https://assets.tomestone.gg/i/112000/112642.webp");
 });

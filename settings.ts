@@ -22,6 +22,16 @@ export const settings = definePluginSettings({
         default: 3,
         stickToMarkers: true,
     },
+    autoDetectRichPresence: {
+        type: OptionType.BOOLEAN,
+        description: "Suggest a character from the FFXIV Rich Presence in someone's Discord status (Dalamud \"Discord Rich Presence\" plugin). Suggestions need your confirmation.",
+        default: true,
+    },
+    autoDetectNicknames: {
+        type: OptionType.BOOLEAN,
+        description: "Suggest a character from nicknames shaped like \"First Last\" or \"First Last (World)\", using world or data-center roles as hints. Suggestions need your confirmation.",
+        default: true,
+    },
     parseMetric: {
         type: OptionType.SELECT,
         description: "FFLogs metric for Best %",

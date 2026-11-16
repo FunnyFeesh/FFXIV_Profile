@@ -10,6 +10,7 @@ import { RelationshipStore, UserProfileStore } from "@webpack/common";
 
 import { DATA_KEYS } from "../constants";
 import type { CharacterLink, IdentityProvider, IdentitySource, LinkMap, ResolvedCharacterIdentity } from "../types";
+import { detectSuggestion, forgetSuggestion } from "./AutoDetect";
 import { emitChange } from "./events";
 import { ParsedIdentity, parseIdentityText } from "./identityText";
 import { Native, safeFetch } from "./ipc";
@@ -22,9 +23,14 @@ function getNoteText(userId: string) {
 }
 
 let links: LinkMap = {};
+// Auto-detected matches the user rejected, per Discord user
+let dismissed: Record<string, string[]> = {};
 
 export async function loadLinks() {
-    links = await DataStore.get<LinkMap>(DATA_KEYS.links) ?? {};
+    [links, dismissed] = await Promise.all([
+        DataStore.get<LinkMap>(DATA_KEYS.links).then(v => v ?? {}),
+        DataStore.get<Record<string, string[]>>(DATA_KEYS.dismissed).then(v => v ?? {}),
+    ]);
 }
 
 export function getLink(discordUserId: string) {
@@ -36,8 +42,51 @@ export async function setLink(discordUserId: string, characters: CharacterLink[]
     links = { ...links };
     if (characters.length) links[discordUserId] = { characters };
     else delete links[discordUserId];
+    // Linking a character by hand overrides an earlier "Not them"
+    if (characters[0] && isDismissed(discordUserId, characters[0].lodestoneId))
+        await saveDismissed(discordUserId, getDismissed(discordUserId).filter(id => id !== characters[0].lodestoneId));
     await DataStore.set(DATA_KEYS.links, links);
     emitChange();
+}
+
+export function getDismissed(discordUserId: string) {
+    return dismissed[discordUserId] ?? [];
+}
+
+function isDismissed(discordUserId: string, lodestoneId: string) {
+    return getDismissed(discordUserId).includes(lodestoneId);
+}
+
+async function saveDismissed(discordUserId: string, ids: string[]) {
+    dismissed = { ...dismissed };
+    if (ids.length) dismissed[discordUserId] = ids;
+    else delete dismissed[discordUserId];
+    await DataStore.set(DATA_KEYS.dismissed, dismissed);
+    emitChange();
+}
+
+// "Not them": never suggest (or auto-link) this character for this user again
+export async function dismissSuggestion(discordUserId: string, lodestoneId: string) {
+    forgetSuggestion(discordUserId);
+    if (!isDismissed(discordUserId, lodestoneId))
+        await saveDismissed(discordUserId, [...getDismissed(discordUserId), lodestoneId]);
+}
+
+export function clearDismissed(discordUserId: string) {
+    return saveDismissed(discordUserId, []);
+}
+
+// Confirming a suggestion saves it exactly like a manual link
+export function confirmSuggestion(discordUserId: string, identity: CharacterLink) {
+    const alts = getLink(discordUserId)?.characters.slice(1) ?? [];
+    const link: CharacterLink = { lodestoneId: identity.lodestoneId, name: identity.name, world: identity.world };
+    return setLink(discordUserId, [link, ...alts.filter(a => a.lodestoneId !== link.lodestoneId)]);
+}
+
+// The character's Lodestone bio names this Discord user: save it, unless a link exists by now
+function autoLink(discordUserId: string, link: CharacterLink) {
+    if (getLink(discordUserId) || isDismissed(discordUserId, link.lodestoneId)) return;
+    setLink(discordUserId, [link]).catch(() => { });
 }
 
 // "name@world" (lowercase) -> Lodestone ID, null = no exact match, undefined entry = not searched yet
@@ -88,7 +137,8 @@ const providers: IdentityProvider[] = [
     },
 ];
 
-// Cheap enough to run on every render: links are in memory and notes/bios are synchronous store reads
+// Cheap enough to run on every render: links are in memory and notes/bios/presence/members are synchronous store reads.
+// Order: your link (manual override) → your note → their bio → auto-detected suggestion.
 export function resolveUser(discordUserId: string): ResolvedCharacterIdentity | null {
     for (const p of providers) {
         try {
@@ -98,5 +148,9 @@ export function resolveUser(discordUserId: string): ResolvedCharacterIdentity | 
             // A store not ready yet shouldn't break the chain
         }
     }
-    return null;
+    try {
+        return detectSuggestion(discordUserId, id => isDismissed(discordUserId, id), autoLink);
+    } catch {
+        return null;
+    }
 }

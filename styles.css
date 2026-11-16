@@ -24,28 +24,27 @@
 
 /* ---------- Popout ---------- */
 
+/* A translucent tint instead of a solid panel, so a Nitro profile theme's colours and gradient show through,
+   and no border: the outline framed the banner art and clashed with themed profiles */
 .vc-ffxiv-popout {
     display: flex;
     flex-direction: column;
     gap: 12px;
     margin: 8px 0;
     padding: 14px;
+    border: none;
+    background: color-mix(in srgb, var(--background-base-lowest, #111214) 40%, transparent);
 }
 
-/* Tomestone banner as a strip across the top of the card, fading into it; the avatar overlaps its bottom edge */
+/* Tomestone banner as a strip across the top of the card; it fades out through a mask rather than into a
+   fixed colour, so it blends into whatever is behind the card. The avatar overlaps its bottom edge. */
 .vc-ffxiv-popout-banner {
     position: relative;
     height: 84px;
     margin: -14px -14px -36px;
     background-size: cover;
     background-position: center;
-}
-
-.vc-ffxiv-popout-banner::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(transparent 30%, var(--profile-body-background-color, var(--background-base-lower, #1e1f22)));
+    mask-image: linear-gradient(#000 35%, transparent);
 }
 
 .vc-ffxiv-popout[data-banner="true"] .vc-ffxiv-identity {
@@ -56,7 +55,7 @@
 .vc-ffxiv-popout[data-banner="true"] .vc-ffxiv-avatar {
     width: 44px;
     height: 44px;
-    border: 3px solid var(--profile-body-background-color, var(--background-base-lower, #1e1f22));
+    box-shadow: 0 0 0 2px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 40%);
 }
 
 .vc-ffxiv-popout[data-banner="true"] .vc-ffxiv-name {
@@ -228,6 +227,16 @@
     opacity: 0.55;
 }
 
+/* Normal-mode kills only: greyed like "none", with a muted NM tag instead of a Savage result */
+.vc-ffxiv-tile[data-kind="normal"] {
+    opacity: 0.7;
+    filter: grayscale(1);
+}
+
+.vc-ffxiv-tile[data-kind="normal"] .vc-ffxiv-tile-corner {
+    color: var(--vc-ffxiv-muted);
+}
+
 /* Ultimates as a 4 + 3 grid (popout and modal): seven in one row was too tight for "P2 64%" */
 .vc-ffxiv-ult-strip,
 .vc-ffxiv-ult-grid {
@@ -236,19 +245,37 @@
     gap: 6px;
 }
 
+/* Popout ultimate pill over the duty art, darkened so the text stays readable */
 .vc-ffxiv-ult {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
     padding: 5px 4px;
+    overflow: hidden;
     border-radius: 8px;
     border: 1.5px solid var(--vc-ffxiv-hairline);
-    background: var(--vc-ffxiv-tile-bg);
+    background-color: var(--vc-ffxiv-tile-bg);
+    background-size: cover;
+    background-position: center;
+    color: #fff;
     font-size: 10px;
     font-weight: 700;
     line-height: 13px;
     white-space: nowrap;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+}
+
+.vc-ffxiv-ult::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 55%);
+}
+
+.vc-ffxiv-ult > * {
+    position: relative;
 }
 
 .vc-ffxiv-ult-value {
@@ -264,6 +291,7 @@
 .vc-ffxiv-ult[data-kind="private"] {
     color: var(--vc-ffxiv-muted);
     opacity: 0.6;
+    filter: grayscale(1);
 }
 
 .vc-ffxiv-empty {
@@ -301,6 +329,55 @@
 
 .vc-ffxiv-open-passport:hover {
     background: rgb(255 255 255 / 8%);
+}
+
+/* Auto-detected match waiting for Confirm / Not them */
+.vc-ffxiv-suggest {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border: 1px dashed rgb(245 158 11 / 55%);
+    border-radius: 8px;
+    background: rgb(245 158 11 / 10%);
+    font-size: 12px;
+}
+
+.vc-ffxiv-modal .vc-ffxiv-suggest {
+    margin-bottom: 12px;
+}
+
+.vc-ffxiv-suggest-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #f5b544;
+    font-weight: 700;
+    cursor: help;
+}
+
+.vc-ffxiv-suggest-button {
+    padding: 3px 8px;
+    border: 1px solid var(--vc-ffxiv-hairline);
+    border-radius: 6px;
+    background: var(--vc-ffxiv-tile-bg);
+    color: var(--text-default, var(--text-normal, #dbdee1));
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vc-ffxiv-suggest-button:hover {
+    background: rgb(255 255 255 / 8%);
+}
+
+.vc-ffxiv-suggest-confirm {
+    border-color: rgb(245 158 11 / 55%);
+    color: #f5b544;
 }
 
 /* ---------- FFXIV Passport window ---------- */
@@ -665,7 +742,8 @@
 
 /* Not cleared and no prog: art fades to grey */
 .vc-ffxiv-boss-row[data-kind="none"] .vc-ffxiv-boss-art,
-.vc-ffxiv-boss-row[data-kind="private"] .vc-ffxiv-boss-art {
+.vc-ffxiv-boss-row[data-kind="private"] .vc-ffxiv-boss-art,
+.vc-ffxiv-boss-row[data-kind="normal"] .vc-ffxiv-boss-art {
     filter: grayscale(1) brightness(0.6);
 }
 
@@ -734,6 +812,15 @@
 .vc-ffxiv-result-none {
     color: var(--vc-ffxiv-muted);
     font-size: 12px;
+}
+
+/* Normal-mode kills only: an outlined tag, so it can't be mistaken for a Savage result */
+.vc-ffxiv-result-normal {
+    padding: 1px 6px;
+    border: 1px solid var(--vc-ffxiv-hairline);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
 }
 
 /* Thin bar under the result: Best % for parses, HP removed for prog */

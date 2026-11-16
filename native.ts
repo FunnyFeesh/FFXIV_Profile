@@ -10,9 +10,9 @@ import { IpcMainInvokeEvent, safeStorage } from "electron";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 
-import { clearFflogsToken, isLodestoneId, requestFflogs, requestLodestone, requestTomestone, searchLodestone } from "./api";
+import { clearFflogsToken, isLodestoneId, requestFflogs, requestLodestone, requestLodestoneBio, requestTomestone, searchLodestone, searchLodestoneExact } from "./api";
 import type { FflogsMetric, FflogsScope } from "./parsers/fflogs";
-import type { CharacterInfo, FetchResult, FflogsData, LodestoneSearchResult, SecretKind, TomestoneData } from "./types";
+import type { CharacterInfo, FetchResult, FflogsData, LodestoneMatches, LodestoneSearchResult, LodestoneSearchScope, SecretKind, TomestoneData } from "./types";
 
 // Let Discord's renderer load character art, banners and job icons (takes effect after a Discord restart)
 CspPolicies["img2.finalfantasyxiv.com"] = ImageSrc; // Lodestone portraits/avatars
@@ -114,4 +114,13 @@ export function fetchLodestone(_: IpcMainInvokeEvent, lodestoneId: string): Prom
 
 export function searchLodestoneCharacter(_: IpcMainInvokeEvent, name: string, world: string): Promise<FetchResult<LodestoneSearchResult>> {
     return searchLodestone(name, world);
+}
+
+// Auto-detection: all exact-name matches in a world, a data center, or everywhere
+export function searchLodestoneMatches(_: IpcMainInvokeEvent, name: string, scope: LodestoneSearchScope): Promise<FetchResult<LodestoneMatches>> {
+    return searchLodestoneExact(name, scope ?? {});
+}
+
+export function fetchLodestoneBio(_: IpcMainInvokeEvent, lodestoneId: string): Promise<FetchResult<string>> {
+    return requestLodestoneBio(lodestoneId);
 }

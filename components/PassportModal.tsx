@@ -12,10 +12,10 @@ import { Modal, openModal, useState } from "@webpack/common";
 import type { CSSProperties, ReactNode } from "react";
 
 import { CURRENT_SAVAGE_TIER, SAVAGE_TIERS } from "../constants";
-import { compactProg, formatPercent, jobIconUrl, jobIdForSpec, statusLabel, tileFor } from "../services/display";
+import { compactProg, formatPercent, jobIconUrl, jobIdForSpec, killsText, normalText, statusLabel, tileFor } from "../services/display";
 import { isTierLoading, loadTier } from "../services/PassportAggregator";
 import type { ActiveProgression, ArtImage, CharacterInfo, EncounterProgOrParse, JobRole, RaiderPassport, SavageTierKey } from "../types";
-import { cl, ExternalLinks, RefreshButton, SourcePills, useFfxivUser } from "./shared";
+import { cl, ExternalLinks, RefreshButton, SourcePills, SuggestionBar, useFfxivUser } from "./shared";
 
 const ROLE_LABELS: Record<JobRole, string> = {
     tanks: "Tanks", healers: "Healers", melee: "Melee", ranged: "Physical Ranged", casters: "Casters", other: "Crafters & Gatherers",
@@ -141,8 +141,10 @@ function BossRow({ e, jobs }: { e: EncounterProgOrParse; jobs: CharacterInfo["jo
     const color = tile.color ?? undefined;
     const jobIcon = jobIconUrl(jobIdForSpec(e.bestJob, jobs));
     const stats = [
-        e.killCount ? `${e.killCount} kill${e.killCount === 1 ? "" : "s"}` : null,
+        e.killCount ? killsText(e.killCount) : null,
         e.fastestKillMs ? formatKillTime(e.fastestKillMs) : null,
+        // Normal kills are never shown as Savage results, only as this note
+        !e.cleared && e.normal ? normalText(e.normal) : null,
     ].filter(Boolean).join(" · ");
 
     let result: ReactNode;
@@ -158,6 +160,8 @@ function BossRow({ e, jobs }: { e: EncounterProgOrParse; jobs: CharacterInfo["jo
             <span className={cl("result-value", "result-small")} style={{ color }}>{compactProg(e.progPoint)}</span>
             {e.progPercent != null && <div className={cl("meter")}><div style={{ width: clampPercent(100 - e.progPercent), background: color }} /></div>}
         </>;
+    } else if (e.normal && !e.progPrivate) {
+        result = <span className={cl("result-none", "result-normal")}>Normal only</span>;
     } else {
         result = <span className={cl("result-none")}>{e.progPrivate ? "Private" : "Not cleared"}</span>;
     }
@@ -287,7 +291,7 @@ function ProgressionCard({ passport }: { passport: RaiderPassport; }) {
 }
 
 function PassportBody({ user }: { user: User; }) {
-    const { lodestoneId, passport, loading } = useFfxivUser(user.id);
+    const { identity, lodestoneId, passport, loading } = useFfxivUser(user.id);
 
     if (!lodestoneId)
         return <span className={cl("empty")}>No FFXIV character linked. Right-click the user → Link / Edit FFXIV Character.</span>;
@@ -297,6 +301,7 @@ function PassportBody({ user }: { user: User; }) {
     const banner = passport.character?.customArt.banner;
     return (
         <>
+            <SuggestionBar userId={user.id} identity={identity} />
             {banner && <BannerHero passport={passport} character={passport.character!} banner={banner} loading={loading} />}
             <div className={cl("layout")}>
                 <Rail passport={passport} loading={loading} identityInHero={!!banner} />

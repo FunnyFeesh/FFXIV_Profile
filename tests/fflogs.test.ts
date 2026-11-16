@@ -11,21 +11,24 @@ import { buildFflogsQuery, FflogsMetric, FflogsScope, parseFflogsResponse } from
 
 const zoneCount = (q: string) => (q.match(/zoneRankings\(/g) ?? []).length;
 
-test("core query: pinned tier + ultimates, all partitions, metric inlined", () => {
+test("core query: pinned tier as Savage and Normal, ultimates, all partitions, metric inlined", () => {
     const q = buildFflogsQuery("rdps", "core");
-    for (const zone of [73, 65, 76, 59])
+    assert.ok(q.includes("z73: zoneRankings(zoneID: 73, difficulty: 101, metric: rdps, partition: -1)"));
+    assert.ok(q.includes("z73n: zoneRankings(zoneID: 73, difficulty: 100, metric: rdps, partition: -1)"));
+    for (const zone of [65, 76, 59])
         assert.equal(q.split(`z${zone}: zoneRankings(zoneID: ${zone}, metric: rdps, partition: -1)`).length, 2, `zone ${zone}`);
-    assert.equal(zoneCount(q), 4);
+    assert.equal(zoneCount(q), 5);
     assert.match(q, /character\(lodestoneID: \$id\)/);
     assert.match(q, /hidden/);
     assert.match(q, /rateLimitData/);
 });
 
-test("older-tier query: only that zone, all partitions", () => {
+test("older-tier query: only that zone, Savage and Normal, all partitions", () => {
     const q = buildFflogsQuery("adps", "cruiserweight");
-    assert.equal(zoneCount(q), 1);
-    assert.match(q, /z68: zoneRankings\(zoneID: 68, metric: adps, partition: -1\)/);
-    assert.equal(zoneCount(buildFflogsQuery("rdps", "lightHeavyweight")), 1);
+    assert.equal(zoneCount(q), 2);
+    assert.ok(q.includes("z68: zoneRankings(zoneID: 68, difficulty: 101, metric: adps, partition: -1)"));
+    assert.ok(q.includes("z68n: zoneRankings(zoneID: 68, difficulty: 100, metric: adps, partition: -1)"));
+    assert.equal(zoneCount(buildFflogsQuery("rdps", "lightHeavyweight")), 2);
 });
 
 test("query rejects metrics and scopes outside the allowlist", () => {
@@ -99,4 +102,25 @@ test("core scope maps rankings to canonical names by encounter ID", () => {
     assert.ok(e["the-omega-protocol-ultimate"]);
     assert.ok(e["the-unending-coil-of-bahamut-ultimate"]);
     assert.deepEqual(ok.data.rateLimit, { limitPerHour: 3600, pointsSpentThisHour: 12, pointsResetIn: 100 });
+});
+
+test("Normal-mode rankings never count as Savage", () => {
+    const res = parseFflogsResponse(response({
+        hidden: false,
+        // FFLogs answered the Savage request with Normal rankings: ignored
+        z73: { difficulty: 100, rankings: [rank(101, "Vamp Fatale")] },
+        z73n: { difficulty: 100, rankings: [rank(102, "Red Hot and Deep Blue", { rankPercent: 54 })] },
+    }), "core");
+    assert.equal(res.status, "ok");
+    if (res.status !== "ok") return;
+    assert.deepEqual(res.data.encounters, {});
+    assert.equal(res.data.normalEncounters["red-hot-deep-blue"].bestPercent, 54);
+});
+
+test("Savage rankings are read when FFLogs confirms the difficulty", () => {
+    const res = parseFflogsResponse(response({ hidden: false, z73: { difficulty: 101, rankings: [rank(101, "Vamp Fatale")] }, z73n: null }), "core");
+    assert.equal(res.status, "ok");
+    if (res.status !== "ok") return;
+    assert.ok(res.data.encounters["vamp-fatale"]);
+    assert.deepEqual(res.data.normalEncounters, {});
 });

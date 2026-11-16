@@ -80,9 +80,31 @@ export function parseLodestoneSearch(html: string): LodestoneSearchResult[] {
     return results;
 }
 
-// Lodestone search is a substring match; only accept an exact name + world
-export function findExactCharacter(results: LodestoneSearchResult[], name: string, world: string) {
+// "Page 1 of 4" in the pager; a page without a pager is the only page
+export function parseLodestonePageCount(html: string) {
+    const m = html.match(/class="btn__pager__current">Page\s*(\d+)\s*of\s*(\d+)/);
+    return m ? Number(m[2]) : 1;
+}
+
+// Lodestone search is a substring match; only accept an exact name (+ world when given)
+export function findExactMatches(results: LodestoneSearchResult[], name: string, world?: string) {
     const n = name.trim().toLowerCase();
-    const w = world.trim().toLowerCase();
-    return results.find(r => r.name.toLowerCase() === n && r.world.toLowerCase() === w) ?? null;
+    const w = world?.trim().toLowerCase();
+    return results.filter(r => r.name.toLowerCase() === n && (!w || r.world.toLowerCase() === w));
+}
+
+export function findExactCharacter(results: LodestoneSearchResult[], name: string, world: string) {
+    return findExactMatches(results, name, world)[0] ?? null;
+}
+
+// The "Character Profile" self-introduction as plain text ("" when empty)
+export function parseLodestoneBio(html: string) {
+    const m = html.match(/class="character__selfintroduction">([\s\S]*?)<\/div>/);
+    if (!m) return "";
+    return decode(m[1].replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, ""));
+}
+
+// True when the text names this Discord user ID as a whole number (not part of a longer one)
+export function bioMentionsDiscordId(bio: string, discordUserId: string) {
+    return /^\d{15,22}$/.test(discordUserId) && new RegExp(`(?<!\\d)${discordUserId}(?!\\d)`).test(bio);
 }

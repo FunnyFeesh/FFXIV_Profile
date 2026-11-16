@@ -25,7 +25,15 @@ export function compactProg(progPoint: string) {
     return [m[2]?.toUpperCase(), `${Math.round(Number(m[1]))}%`].filter(Boolean).join(" ");
 }
 
-export type TileKind = "parse" | "cleared" | "prog" | "private" | "none";
+// "normal" = no Savage clear, parse or prog, but Normal-mode kills on FF Logs
+export type TileKind = "parse" | "cleared" | "prog" | "private" | "normal" | "none";
+
+export const killsText = (n: number) => `${n} kill${n === 1 ? "" : "s"}`;
+
+// "Normal: 3 kills, 54 Best %"
+export function normalText(n: NonNullable<EncounterProgOrParse["normal"]>) {
+    return `Normal: ${killsText(n.killCount)}${n.bestPercent != null ? `, ${formatPercent(n.bestPercent)} Best %` : ""}`;
+}
 
 export interface TileModel {
     label: string;
@@ -43,10 +51,11 @@ export interface TileModel {
 function tooltipFor(e: EncounterProgOrParse) {
     const parts = [e.fullName];
     if (e.bestPercent != null) parts.push(`${formatPercent(e.bestPercent)} Best %`);
-    if (e.killCount) parts.push(`${e.killCount} kill${e.killCount === 1 ? "" : "s"}`);
+    if (e.killCount) parts.push(killsText(e.killCount));
     else if (e.cleared) parts.push("Cleared");
     if (!e.cleared && e.progPoint) parts.push(`Prog: ${e.progPoint}${e.progMechanic ? ` (${e.progMechanic})` : ""}`);
     if (!e.cleared && e.progPrivate) parts.push("Prog is private");
+    if (!e.cleared && e.normal) parts.push(`No Savage clear · ${normalText(e.normal)}`);
     return parts.join(" · ");
 }
 
@@ -56,6 +65,7 @@ export function tileFor(e: EncounterProgOrParse, label = e.shortName): TileModel
     if (e.cleared) return { ...base, kind: "cleared", corner: "✓", color: null };
     if (e.progPoint) return { ...base, kind: "prog", corner: compactProg(e.progPoint), color: PROG_COLOR };
     if (e.progPrivate) return { ...base, kind: "private", corner: null, color: null };
+    if (e.normal) return { ...base, kind: "normal", corner: "NM", color: null };
     return { ...base, kind: "none", corner: null, color: null };
 }
 

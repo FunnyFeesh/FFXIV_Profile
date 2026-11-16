@@ -10,7 +10,7 @@ import { CURRENT_SAVAGE_TIER, SAVAGE_TIERS } from "../constants";
 import { m12sTile, tileFor } from "../services/display";
 import type { RaiderPassport } from "../types";
 import { openPassportModal } from "./PassportModal";
-import { cl, RefreshButton, SavageTile, SourcePills, UltimatePill, useFfxivUser } from "./shared";
+import { cl, RefreshButton, SavageTile, SourcePills, SuggestionBar, UltimatePill, useFfxivUser } from "./shared";
 
 // Pinned tier: floors 1-3 as-is, then the door-collapsed 4th floor (two FFLogs encounters)
 function savageTiles(p: RaiderPassport) {
@@ -20,12 +20,13 @@ function savageTiles(p: RaiderPassport) {
 }
 
 export function PopoutProgSummary({ user }: { user: User; }) {
-    const { lodestoneId, passport, loading } = useFfxivUser(user.id);
+    const { identity, lodestoneId, passport, loading } = useFfxivUser(user.id);
     if (!lodestoneId) return null;
 
     if (!passport) {
         return (
             <div className={cl("card", "popout")}>
+                <SuggestionBar userId={user.id} identity={identity} />
                 <span className={cl("empty")}>{loading ? "Loading FFXIV profile…" : "No FFXIV data yet."}</span>
             </div>
         );
@@ -47,6 +48,8 @@ export function PopoutProgSummary({ user }: { user: User; }) {
                 </div>
                 <RefreshButton lodestoneId={passport.lodestoneId} fetchedAt={passport.fetchedAt} loading={loading} />
             </div>
+
+            <SuggestionBar userId={user.id} identity={identity} />
 
             {/* Lodestone only matters as the identity fallback, i.e. when Tomestone failed */}
             <SourcePills sources={{

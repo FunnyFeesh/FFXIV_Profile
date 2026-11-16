@@ -66,7 +66,8 @@ export const FfxivProfileBadge: ProfileBadge = {
     position: BadgePosition.START,
     getBadges({ userId }) {
         const identity = resolveUser(userId);
-        if (!identity) return [];
+        // Badges read as fact, so unconfirmed suggestions get none
+        if (!identity || identity.suggested) return [];
 
         const passport = getCachedSync(identity.lodestoneId);
         if (!passport) {

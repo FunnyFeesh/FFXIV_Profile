@@ -21,6 +21,17 @@ export interface SourceResults {
 
 const statusOf = (r: FetchResult<unknown> | null): SourceStatus => r?.status ?? "skipped";
 
+// Bumped when cached passports must be rebuilt: 2 = Savage and Normal FFLogs rankings kept apart,
+// 3 = duty art for fights Tomestone sent none for
+export const PASSPORT_SCHEMA = 3;
+
+export const dutyArtUrl = (art: number) => `https://assets.tomestone.gg/i/112000/${art}.webp`;
+
+function normalOf(fflogs: FetchResult<FflogsData> | null, canonicalName: string): EncounterProgOrParse["normal"] {
+    const n = fflogs?.status === "ok" ? fflogs.data.normalEncounters?.[canonicalName] : undefined;
+    return n?.killCount ? { killCount: n.killCount, bestPercent: n.bestPercent } : null;
+}
+
 function toEntry(def: EncounterDef, fflogs: FetchResult<FflogsData> | null, tomestone: TomestoneData | null): EncounterProgOrParse {
     const ffOk = fflogs?.status === "ok";
     const ff = ffOk ? fflogs.data.encounters[def.canonicalName] : undefined;
@@ -39,7 +50,9 @@ function toEntry(def: EncounterDef, fflogs: FetchResult<FflogsData> | null, tome
         progMechanic: ts?.progMechanic ?? null,
         progPercent: ts?.progPercent ?? null,
         progPrivate: ts?.progPrivate ?? false,
-        bannerUrl: ts?.bannerUrl ?? null,
+        // Tomestone only sends art for fights the character has touched
+        bannerUrl: ts?.bannerUrl ?? dutyArtUrl(def.art),
+        normal: normalOf(fflogs, def.canonicalName),
     };
 }
 
@@ -52,6 +65,7 @@ export function buildPassport(lodestoneId: string, metric: FflogsMetric, fetched
     const lodestone = res.lodestone?.status === "ok" ? res.lodestone.data : null;
 
     return {
+        schema: PASSPORT_SCHEMA,
         lodestoneId,
         fetchedAt,
         metric,
@@ -81,6 +95,7 @@ export function applyTierFflogs(p: RaiderPassport, tier: SavageTierKey, result: 
             bestPercent: ff?.bestPercent ?? null,
             bestJob: ff?.bestJob ?? null,
             fastestKillMs: ff?.fastestKillMs ?? null,
+            normal: normalOf(result, e.canonicalName),
         };
     });
     return {
@@ -98,6 +113,7 @@ export interface FreshnessContext {
 }
 
 export function isFresh(p: RaiderPassport, ctx: FreshnessContext) {
+    if (p.schema !== PASSPORT_SCHEMA) return false;
     if (p.metric !== ctx.metric) return false;
     if (p.fetchedAt <= ctx.credentialsChangedAt) return false;
     if (ctx.now - p.fetchedAt >= ctx.ttlMs) return false;

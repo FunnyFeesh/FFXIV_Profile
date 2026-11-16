@@ -10,7 +10,7 @@ import type { FetchResult, FflogsData, FflogsEncounterData, FflogsMetric, Savage
 export type { FflogsMetric };
 export const FFLOGS_METRICS: readonly FflogsMetric[] = ["rdps", "adps", "cdps"];
 
-// "core" = pinned savage tier + all ultimates (~21 points). A tier key = that tier only (~5 points),
+// "core" = pinned savage tier (Savage + Normal) + all ultimates (~26 points). A tier key = that tier only (~10 points),
 // fetched when it's picked in the modal's tier dropdown.
 export type FflogsScope = "core" | SavageTierKey;
 
@@ -22,21 +22,27 @@ export function isFflogsScope(s: unknown): s is FflogsScope {
 // result today (checked live), but being explicit keeps it all-time if FFLogs changes its default.
 const ALL_PARTITIONS = -1;
 
+// Savage and Normal share encounter IDs. Without `difficulty`, FFLogs answers with Normal rankings for someone
+// who has no Savage logs, and those showed up as Savage parses. Savage zones ask for each difficulty explicitly.
+export const SAVAGE_DIFFICULTY = 101;
+export const NORMAL_DIFFICULTY = 100;
+
 interface ZoneDefs {
     zoneId: number;
     encounters: EncounterDef[];
+    savage: boolean;
 }
 
 function zoneDefs(scope: FflogsScope): ZoneDefs[] {
     const zones = new Map<number, ZoneDefs>();
-    const add = (zoneId: number, e: EncounterDef) => {
-        if (!zones.has(zoneId)) zones.set(zoneId, { zoneId, encounters: [] });
+    const add = (zoneId: number, e: EncounterDef, savage: boolean) => {
+        if (!zones.has(zoneId)) zones.set(zoneId, { zoneId, encounters: [], savage });
         zones.get(zoneId)!.encounters.push(e);
     };
     const tier = SAVAGE_TIERS[scope === "core" ? CURRENT_SAVAGE_TIER : scope];
-    for (const f of tier.floors) add(tier.fflogsZoneId, f);
+    for (const f of tier.floors) add(tier.fflogsZoneId, f, true);
     if (scope === "core")
-        for (const u of Object.values(ULTIMATES)) add(u.fflogsZoneId, u);
+        for (const u of Object.values(ULTIMATES)) add(u.fflogsZoneId, u, false);
     return [...zones.values()];
 }
 
@@ -45,8 +51,13 @@ export function buildFflogsQuery(metric: FflogsMetric, scope: FflogsScope) {
     if (!FFLOGS_METRICS.includes(metric)) throw new Error("Invalid metric");
     if (!isFflogsScope(scope)) throw new Error("Invalid scope");
 
+    const rankings = (alias: string, zoneId: number, difficulty?: number) =>
+        `${alias}: zoneRankings(zoneID: ${zoneId}${difficulty ? `, difficulty: ${difficulty}` : ""}, metric: ${metric}, partition: ${ALL_PARTITIONS})`;
+    // Ultimates have a single difficulty
     const zones = zoneDefs(scope)
-        .map(z => `z${z.zoneId}: zoneRankings(zoneID: ${z.zoneId}, metric: ${metric}, partition: ${ALL_PARTITIONS})`)
+        .flatMap(z => z.savage
+            ? [rankings(`z${z.zoneId}`, z.zoneId, SAVAGE_DIFFICULTY), rankings(`z${z.zoneId}n`, z.zoneId, NORMAL_DIFFICULTY)]
+            : [rankings(`z${z.zoneId}`, z.zoneId)])
         .join("\n            ");
 
     return `query ($id: Int!) {
@@ -67,6 +78,11 @@ interface FlRanking {
     fastestKill?: number | null;
     bestSpec?: string | null;
     spec?: string | null;
+}
+
+interface FlZone {
+    difficulty?: number | null;
+    rankings?: FlRanking[];
 }
 
 interface FlResponse {
@@ -91,19 +107,32 @@ export function parseFflogsResponse(json: unknown, scope: FflogsScope): FetchRes
     if (character.hidden) return { status: "private" };
 
     const encounters: Record<string, FflogsEncounterData> = {};
-    for (const zone of zoneDefs(scope)) {
-        const rankings = (character[`z${zone.zoneId}`] as { rankings?: FlRanking[]; } | null)?.rankings ?? [];
-        for (const r of rankings) {
+    const normalEncounters: Record<string, FflogsEncounterData> = {};
+
+    const read = (zone: ZoneDefs, alias: string, difficulty: number | undefined, into: Record<string, FflogsEncounterData>) => {
+        const z = character[alias] as FlZone | null | undefined;
+        // Never let one difficulty's rankings stand in for another's
+        if (!z || (difficulty && z.difficulty != null && z.difficulty !== difficulty)) return;
+        for (const r of z.rankings ?? []) {
             const def = zone.encounters.find(d => d.fflogsEncounterId === r.encounter?.id);
             if (!def) continue;
-            encounters[def.canonicalName] = {
+            into[def.canonicalName] = {
                 killCount: r.totalKills ?? 0,
                 bestPercent: r.rankPercent ?? null,
                 bestJob: r.bestSpec ?? r.spec ?? null,
                 fastestKillMs: r.fastestKill || null,
             };
         }
+    };
+
+    for (const zone of zoneDefs(scope)) {
+        if (zone.savage) {
+            read(zone, `z${zone.zoneId}`, SAVAGE_DIFFICULTY, encounters);
+            read(zone, `z${zone.zoneId}n`, NORMAL_DIFFICULTY, normalEncounters);
+        } else {
+            read(zone, `z${zone.zoneId}`, undefined, encounters);
+        }
     }
 
-    return { status: "ok", data: { encounters, rateLimit: res.data?.rateLimitData ?? null } };
+    return { status: "ok", data: { encounters, normalEncounters, rateLimit: res.data?.rateLimitData ?? null } };
 }

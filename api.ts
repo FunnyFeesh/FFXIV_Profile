@@ -8,9 +8,10 @@
 // native.ts wraps these with the stored secrets.
 
 import { buildFflogsQuery, FflogsMetric, FflogsScope, parseFflogsResponse } from "./parsers/fflogs";
-import { findExactCharacter, parseLodestoneProfile, parseLodestoneSearch } from "./parsers/lodestone";
+import { findExactMatches, parseLodestoneBio, parseLodestonePageCount, parseLodestoneProfile, parseLodestoneSearch } from "./parsers/lodestone";
 import { parseTomestoneProfile } from "./parsers/tomestone";
-import type { CharacterInfo, FetchResult, FflogsData, LodestoneSearchResult, TomestoneData } from "./types";
+import { findDataCenter, findWorld } from "./services/worlds";
+import type { CharacterInfo, FetchResult, FflogsData, LodestoneMatches, LodestoneSearchResult, LodestoneSearchScope, TomestoneData } from "./types";
 
 const TIMEOUT_MS = 15_000;
 
@@ -105,7 +106,6 @@ export async function requestFflogs(creds: FflogsCredentials, lodestoneId: strin
 }
 
 // --- Tomestone ---
-
 // Raw profile call; returns the parsed JSON body
 export async function tomestoneProfileJson(token: string, lodestoneId: string): Promise<FetchResult<unknown>> {
     if (!isLodestoneId(lodestoneId)) return invalidId;
@@ -157,16 +157,60 @@ export async function requestLodestone(lodestoneId: string): Promise<FetchResult
     }
 }
 
+// Substring search returns 50 per page in no useful order, so an exact match can be on any page.
+// Three pages bounds the cost of a common name; past that, uniqueness is reported as unproven.
+const MAX_SEARCH_PAGES = 3;
+
+// Every character whose name is exactly `name`, within one world, one data center (`_dc_<DC>`, checked live)
+// or all worlds. Worlds and DCs must be on the world list.
+export async function searchLodestoneExact(name: string, scope: LodestoneSearchScope): Promise<FetchResult<LodestoneMatches>> {
+    if (typeof name !== "string" || !name.trim()) return { status: "error", message: "Enter a character name" };
+    const world = "world" in scope ? findWorld(scope.world) ?? undefined : undefined;
+    const dataCenter = "dataCenter" in scope ? findDataCenter(scope.dataCenter) : null;
+    if (("world" in scope && !world) || ("dataCenter" in scope && !dataCenter))
+        return { status: "error", message: "Unknown world or data center" };
+    const worldname = world ?? (dataCenter ? `_dc_${dataCenter}` : "");
+
+    try {
+        const matches: LodestoneSearchResult[] = [];
+        let pages = 1;
+        for (let page = 1; page <= Math.min(pages, MAX_SEARCH_PAGES); page++) {
+            const params = new URLSearchParams({ q: name.trim() });
+            if (worldname) params.set("worldname", worldname);
+            if (page > 1) params.set("page", String(page));
+
+            const res = await fetch(`${LODESTONE}/character/?${params}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+            if (!res.ok) return { status: "error", message: `Lodestone search failed (HTTP ${res.status})` };
+
+            const html = await res.text();
+            if (page === 1) pages = parseLodestonePageCount(html);
+            matches.push(...findExactMatches(parseLodestoneSearch(html), name, world));
+            // Within one world a full name is unique, so the first hit settles it
+            if (world && matches.length) break;
+        }
+        return { status: "ok", data: { matches, complete: pages <= MAX_SEARCH_PAGES || (!!world && matches.length > 0) } };
+    } catch (e) {
+        return networkError(e);
+    }
+}
+
 export async function searchLodestone(name: string, world: string): Promise<FetchResult<LodestoneSearchResult>> {
     if (typeof name !== "string" || typeof world !== "string" || !name.trim() || !world.trim())
         return { status: "error", message: "Enter a character name and world" };
-    try {
-        const url = `${LODESTONE}/character/?q=${encodeURIComponent(name.trim())}&worldname=${encodeURIComponent(world.trim())}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-        if (!res.ok) return { status: "error", message: `Lodestone search failed (HTTP ${res.status})` };
+    const res = await searchLodestoneExact(name, { world });
+    if (res.status !== "ok") return res;
+    const match = res.data.matches[0];
+    return match ? { status: "ok", data: match } : { status: "not_found" };
+}
 
-        const match = findExactCharacter(parseLodestoneSearch(await res.text()), name, world);
-        return match ? { status: "ok", data: match } : { status: "not_found" };
+// The character's Lodestone "Character Profile" text, used to confirm a guess that names the Discord user's ID
+export async function requestLodestoneBio(lodestoneId: string): Promise<FetchResult<string>> {
+    if (!isLodestoneId(lodestoneId)) return invalidId;
+    try {
+        const res = await fetch(`${LODESTONE}/character/${lodestoneId}/`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+        if (res.status === 404) return { status: "not_found" };
+        if (!res.ok) return { status: "error", message: `Lodestone request failed (HTTP ${res.status})` };
+        return { status: "ok", data: parseLodestoneBio(await res.text()) };
     } catch (e) {
         return networkError(e);
     }

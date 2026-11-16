@@ -106,3 +106,13 @@ test("jobIdForSpec matches FF Logs specs to the character's jobs", () => {
     assert.equal(jobIdForSpec("Pictomancer", jobs), undefined);
     assert.equal(jobIdForSpec(null, jobs), undefined);
 });
+
+test("Normal-only kills get their own muted tile, never a Savage result", () => {
+    const normal = { killCount: 2, bestPercent: 54.2 };
+    const t = tileFor(enc({ normal }));
+    assert.deepEqual([t.kind, t.corner, t.color], ["normal", "NM", null]);
+    assert.equal(t.tooltip, "Vamp Fatale · No Savage clear · Normal: 2 kills, 54 Best %");
+    // Any Savage signal wins over Normal kills
+    assert.equal(tileFor(enc({ normal, progPoint: "10% P1" })).kind, "prog");
+    assert.equal(tileFor(enc({ normal, cleared: true })).kind, "cleared");
+});
