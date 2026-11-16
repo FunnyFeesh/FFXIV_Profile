@@ -127,7 +127,7 @@ function Rail({ passport, loading, identityInHero }: { passport: RaiderPassport;
             )}
 
             <SourcePills sources={{ fflogs: passport.sources.fflogs, lodestone: c ? undefined : passport.sources.lodestone }} />
-            <ExternalLinks lodestoneId={passport.lodestoneId} />
+            <ExternalLinks lodestoneId={passport.lodestoneId} name={passport.character?.name} />
         </aside>
     );
 }

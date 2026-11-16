@@ -143,8 +143,8 @@ export function UltimatePill({ tile }: { tile: TileModel; }) {
     );
 }
 
-export function ExternalLinks({ lodestoneId }: { lodestoneId: string; }) {
-    const links = characterLinks(lodestoneId);
+export function ExternalLinks({ lodestoneId, name }: { lodestoneId: string; name?: string | null; }) {
+    const links = characterLinks(lodestoneId, name);
     const items = [
         { key: "tomestone", label: "Tomestone", url: links.tomestone, icon: LINK_ICONS.tomestone },
         { key: "fflogs", label: "FF Logs", url: links.fflogs, icon: LINK_ICONS.fflogs },

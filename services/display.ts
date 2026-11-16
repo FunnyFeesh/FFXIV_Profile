@@ -93,9 +93,16 @@ export function jobIconUrl(jobId: number | undefined) {
     return `https://v2.xivapi.com/api/asset?path=ui/icon/062000/${icon}_hr1.tex&format=png`;
 }
 
-export function characterLinks(lodestoneId: string) {
+// Tomestone 404s on /character/<id> alone; any slug after the ID works, the name is just nicer
+export function tomestoneSlug(name: string | null | undefined) {
+    const slug = (name ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return slug || "character";
+}
+
+export function characterLinks(lodestoneId: string, name?: string | null) {
     return {
-        tomestone: `https://tomestone.gg/character/${lodestoneId}`,
+        tomestone: `https://tomestone.gg/character/${lodestoneId}/${tomestoneSlug(name)}`,
         fflogs: `https://www.fflogs.com/character/lodestone-id/${lodestoneId}`,
         lodestone: `https://na.finalfantasyxiv.com/lodestone/character/${lodestoneId}/`,
     };

@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PROG_COLOR } from "../constants";
-import { compactProg, jobIconUrl, jobIdForSpec, m12sTile, parseColor, relativeTime, statusLabel, tileFor } from "../services/display";
+import { characterLinks, compactProg, jobIconUrl, jobIdForSpec, m12sTile, parseColor, relativeTime, statusLabel, tileFor } from "../services/display";
 import type { EncounterProgOrParse } from "../types";
 
 const enc = (over: Partial<EncounterProgOrParse> = {}): EncounterProgOrParse => ({
@@ -115,4 +115,11 @@ test("Normal-only kills get their own muted tile, never a Savage result", () => 
     // Any Savage signal wins over Normal kills
     assert.equal(tileFor(enc({ normal, progPoint: "10% P1" })).kind, "prog");
     assert.equal(tileFor(enc({ normal, cleared: true })).kind, "cleared");
+});
+
+test("Tomestone link carries a name slug, since the bare ID 404s", () => {
+    assert.equal(characterLinks("5", "Tata Taru").tomestone, "https://tomestone.gg/character/5/tata-taru");
+    assert.equal(characterLinks("5", "J'zhan Rhul").tomestone, "https://tomestone.gg/character/5/j-zhan-rhul");
+    assert.equal(characterLinks("5", "Élise Dûpont").tomestone, "https://tomestone.gg/character/5/elise-dupont");
+    assert.equal(characterLinks("5").tomestone, "https://tomestone.gg/character/5/character");
 });

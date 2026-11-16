@@ -28,7 +28,7 @@ function ultDescription(u: EncounterProgOrParse, metric: RaiderPassport["metric"
 function buildBadges(p: RaiderPassport): ProfileBadge[] {
     const badges: ProfileBadge[] = [];
     const c = p.character;
-    const links = characterLinks(p.lodestoneId);
+    const links = characterLinks(p.lodestoneId, p.character?.name);
 
     const jobIcon = jobIconUrl(c?.activeJobId);
     if (c && jobIcon) {
